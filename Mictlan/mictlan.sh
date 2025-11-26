@@ -56,25 +56,26 @@ banner() {
   echo "██║╚██╔╝██║██║██║        ██║   ██║     ██╔══██║██║╚██╗██║"
   echo "██║ ╚═╝ ██║██║╚██████╗   ██║   ███████╗██║  ██║██║ ╚████║"
   echo "╚═╝     ╚═╝╚═╝ ╚═════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝"
-  echo "                 Malware Analyzer - Mictlan"
+  echo "               🧪  Malware Analyzer - Mictlan  🐺"
+  echo "           DFIR / Malware Lab · Static Framework"
   echo -e "${RESET}"
 }
 
 error() {
-  echo -e "${RED}[X]${RESET} $*" >&2
+  echo -e "${RED}[✖]${RESET} $*" >&2
   exit 1
 }
 
 info() {
-  echo -e "${BLUE}[*]${RESET} $*"
+  echo -e "${BLUE}[🧪]${RESET} $*"
 }
 
 ok() {
-  echo -e "${GREEN}[+]${RESET} $*"
+  echo -e "${GREEN}[✔]${RESET} $*"
 }
 
 warn() {
-  echo -e "${YELLOW}[!]${RESET} $*"
+  echo -e "${YELLOW}[⚠]${RESET} $*"
 }
 
 # ---------- Checar dependencias mínimas ----------
@@ -444,7 +445,7 @@ generate_report() {
   local case_dir="$2"
 
   local report="${case_dir}/reporte_mictlan.txt"
-  ok "Generando reporte inicial: $report"
+  ok "Generando reporte estructurado: $report"
 
   {
     echo "# ============================"
@@ -456,38 +457,123 @@ generate_report() {
     echo "Ruta: $sample"
     echo "Caso: $(basename "$case_dir")"
     echo
-    echo "## 1. Hashes"
-    echo "Ver: hashes.txt"
+    echo "---"
     echo
-    echo "## 2. Información básica (file)"
-    echo "Ver: file_info.txt"
+    # 1. HASHES
+    echo "## 1. Hashes (MD5 / SHA1 / SHA256)"
+    if [[ -f "${case_dir}/hashes.txt" ]]; then
+      sed 's/^/    /' "${case_dir}/hashes.txt"
+    else
+      echo "    (hashes.txt no encontrado)"
+    fi
     echo
-    echo "## 3. Strings interesantes"
-    echo "Ver: strings_interesting.txt"
+    # 2. FILE INFO
+    echo "## 2. Información básica del archivo (file)"
+    if [[ -f "${case_dir}/file_info.txt" ]]; then
+      sed 's/^/    /' "${case_dir}/file_info.txt"
+    else
+      echo "    (file_info.txt no encontrado)"
+    fi
     echo
-    echo "## 4. Análisis adicional (si herramientas instaladas)"
-    echo "- UPX: upx_test.txt"
-    echo "- FLOSS: floss_all.txt y floss_iocs.txt"
-    echo "- PEScan: pescan.txt"
-    echo "- rabin2: rabin2_info.txt y rabin2_strings.txt"
-    echo "- Entropía: entropy.txt"
+    # 3. ENTROPÍA
+    echo "## 3. Entropía del archivo"
+    if [[ -f "${case_dir}/entropy.txt" ]]; then
+      sed 's/^/    /' "${case_dir}/entropy.txt"
+    else
+      echo "    (entropy.txt no encontrado)"
+    fi
     echo
-    echo "## 5. Regla YARA auto-generada"
-    echo "- Ver: *.yara (regla creada a partir del SHA256 y strings)"
+    # 4. STRINGS / IOC
+    echo "## 4. Strings interesantes (IOC)"
+    if [[ -f "${case_dir}/strings_interesting.txt" ]]; then
+      echo "### 4.1 Muestra de strings interesantes (primeras 40 líneas)"
+      head -n 40 "${case_dir}/strings_interesting.txt" | sed 's/^/    /'
+    else
+      echo "    (strings_interesting.txt no encontrado)"
+    fi
     echo
-    echo "## 6. VirusTotal (opcional)"
-    echo "- Si VT_API_KEY está definido se genera: virustotal_<SHA256>.json"
+    if [[ -f "${case_dir}/floss_iocs.txt" ]]; then
+      echo "### 4.2 Strings desofuscadas por FLOSS (primeras 40 líneas)"
+      head -n 40 "${case_dir}/floss_iocs.txt" | sed 's/^/    /'
+    fi
     echo
-    echo "## 7. Ghidra headless (opcional)"
-    echo "- Si GHIDRA_DIR está definido se genera: ghidra_headless.log"
+    # 5. PACKERS / PE INFO
+    echo "## 5. Empaquetadores y análisis PE"
     echo
-    echo "## 8. Observaciones manuales"
-    echo "- Anotar hallazgos relevantes:"
-    echo "  * Posibles C2, dominios, IPs, URLs sospechosas"
-    echo "  * Rutas internas, nombres de usuario, mensajes de error"
-    echo "  * Librerías sospechosas o empaquetadores (UPX, ASPack, etc.)"
+    echo "### 5.1 UPX"
+    if [[ -f "${case_dir}/upx_test.txt" ]]; then
+      head -n 20 "${case_dir}/upx_test.txt" | sed 's/^/    /'
+    else
+      echo "    (upx_test.txt no encontrado)"
+    fi
     echo
-    echo "Fin del reporte inicial Mictlan."
+    echo "### 5.2 PEScan"
+    if [[ -f "${case_dir}/pescan.txt" ]]; then
+      head -n 40 "${case_dir}/pescan.txt" | sed 's/^/    /'
+    else
+      echo "    (pescan.txt no encontrado)"
+    fi
+    echo
+    echo "### 5.3 rabin2 (info principal)"
+    if [[ -f "${case_dir}/rabin2_info.txt" ]]; then
+      head -n 40 "${case_dir}/rabin2_info.txt" | sed 's/^/    /'
+    else
+      echo "    (rabin2_info.txt no encontrado)"
+    fi
+    echo
+    # 6. REGLA YARA
+    echo "## 6. Regla YARA generada automáticamente"
+    local yara_file
+    yara_file="$(ls "${case_dir}"/mictlan_*.yara 2>/dev/null | head -n 1 || true)"
+    if [[ -n "$yara_file" ]]; then
+      echo "Archivo: $(basename "$yara_file")"
+      echo
+      head -n 40 "$yara_file" | sed 's/^/    /'
+    else
+      echo "    (no se encontró regla YARA generada)"
+    fi
+    echo
+    # 7. VIRUSTOTAL
+    echo "## 7. Resumen VirusTotal (si disponible)"
+    local vt_json
+    vt_json="$(ls "${case_dir}"/virustotal_*.json 2>/dev/null | head -n 1 || true)"
+    if [[ -n "$vt_json" ]]; then
+      echo "Archivo: $(basename "$vt_json")"
+      if command -v jq >/dev/null 2>&1; then
+        echo
+        echo "### 7.1 Stats de detección"
+        jq '.data.attributes.last_analysis_stats' "$vt_json" 2>/dev/null | sed 's/^/    /'
+        echo
+        echo "### 7.2 Etiquetas principales (si existen)"
+        jq '.data.attributes.tags // []' "$vt_json" 2>/dev/null | sed 's/^/    /'
+      else
+        echo "    (jq no instalado, revisar JSON manualmente)"
+      fi
+    else
+      echo "    (VirusTotal no ejecutado o JSON no encontrado)"
+    fi
+    echo
+    # 8. GHIDRA
+    echo "## 8. Resumen Ghidra headless (si disponible)"
+    if [[ -f "${case_dir}/ghidra_headless.log" ]]; then
+      echo "Archivo: ghidra_headless.log"
+      echo
+      echo "### 8.1 Llamadas a APIs de red detectadas (extracto)"
+      grep "API encontrada" -n "${case_dir}/ghidra_headless.log" | head -n 40 | sed 's/^/    /' || echo "    (no se encontraron APIs de red en el extracto)"
+    else
+      echo "    (Ghidra headless no ejecutado o log no encontrado)"
+    fi
+    echo
+    # 9. RESUMEN FINAL / NOTAS
+    echo "## 9. Resumen y notas del analista"
+    echo "- Revisar los IOC listados en la sección 4." 
+    echo "- Validar posible uso de empaquetadores según secciones 3 y 5." 
+    echo "- Confirmar reputación en VT (sección 7) y correlacionar con hallazgos internos." 
+    echo "- Si es necesario, complementar con análisis dinámico en entorno aislado." 
+    echo
+    echo "---"
+    echo
+    echo "Fin del reporte Mictlan para: $(basename "$sample")"
   } > "$report"
 }
 
