@@ -1,0 +1,236 @@
+
+
+# 🧪🔥 MICTLAN — Malware Analysis Framework (Static + Optional VT + Ghidra Headless)
+
+Mictlan es un framework de análisis de malware **100% en Bash**, diseñado para:
+- Análisis estático rápido y profundo  
+- Recolección automática de IOC  
+- Integración opcional con:
+  - **VirusTotal API**
+  - **Ghidra Headless**
+- Exportación de resultados en **JSON**, ideal para pipelines forenses
+
+Este proyecto está pensado para DFIR, análisis de muestras, CTFs, laboratorios de malware y auditorías de seguridad.
+
+---
+
+## ⚡ Características principales
+
+| Módulo | Descripción |
+|-------|-------------|
+| 🔍 Hashes | MD5, SHA1, SHA256 |
+| 📂 File Info | Tipo de archivo, PE info |
+| 🔠 Strings | Todas + filtradas (URLs, IPs, dominios, rutas) |
+| 📡 FLOSS | Strings desofuscadas |
+| 📦 UPX Test | Detecta si está empaquetado |
+| 🧬 PEScan | Análisis de secciones e imports |
+| 🧩 Rabin2 | Info avanzada del binario |
+| 🎲 Entropía | Detección de cifrado/packing |
+| 🧿 YARA | Regla generada automáticamente |
+| 🌐 VirusTotal API (opcional) | Consultas automáticas vía SHA256 |
+| 🧠 Ghidra Headless (opcional) | Búsqueda de funciones de red |
+| 📑 Reporte | Resumen completo en texto |
+| 🧰 Export JSON | Para usar en otros pipelines |
+
+---
+
+## 📦 Requisitos
+
+Instalación mínima:
+
+```bash
+sudo apt update && sudo apt install -y \
+  file binutils coreutils curl python3 jq yara upx radare2
+```
+
+Opcional (altamente recomendado):
+
+```bash
+pip3 install floss
+sudo apt install pescan
+```
+
+VirusTotal:
+
+```bash
+export VT_API_KEY="TU_API_KEY"
+```
+
+Ghidra Headless:
+
+```bash
+export GHIDRA_DIR="/opt/ghidra"
+```
+
+---
+
+## 🚀 Instalación
+
+Clonar el repositorio:
+
+```bash
+git clone https://github.com/tuusuario/Mictlan.git
+cd Mictlan
+chmod +x mictlan.sh
+```
+
+---
+
+## 🧨 Uso básico
+
+### Analizar un archivo local:
+```bash
+./mictlan.sh ./archivo.exe
+```
+
+### Analizar desde URL:
+```bash
+./mictlan.sh https://sitio.com/muestra.exe
+```
+
+---
+
+## 🎛️ Flags disponibles
+
+| Flag | Descripción |
+|------|-------------|
+| `-q` | Modo silencioso (solo errores críticos) |
+| `-v` | Modo verbose (muestra todo en tiempo real) |
+| `--json` | Exporta análisis completo a JSON |
+| `--no-vt` | Desactiva VirusTotal incluso si existe API Key |
+| `--no-ghidra` | Evita ejecutar análisis Ghidra Headless |
+| `-h` / `--help` | Muestra la ayuda |
+
+Ejemplo:
+
+```bash
+./mictlan.sh muestra.exe -v --json
+```
+
+---
+
+## 🗂️ Salida generada (estructura)
+
+Cada análisis crea una carpeta así:
+
+```
+mictlan_20251126_233045_archivo.exe/
+├── hashes.txt
+├── file_info.txt
+├── strings_all.txt
+├── strings_interesting.txt
+├── floss_all.txt
+├── floss_iocs.txt
+├── upx_test.txt
+├── pescan.txt
+├── rabin2_info.txt
+├── rabin2_strings.txt
+├── entropy.txt
+├── mictlan_<hash>.yara
+├── virustotal_<hash>.json       (si VT_API_KEY)
+├── ghidra_headless.log          (si GHIDRA_DIR)
+├── ghidra_project/              (si GHIDRA_DIR)
+├── ghidra_scripts/              (si GHIDRA_DIR)
+└── reporte_mictlan.txt
+```
+
+---
+
+## 📡 Integración con VirusTotal
+
+Activar:
+
+```bash
+export VT_API_KEY="tu_api_key"
+```
+
+La consulta se realiza automáticamente usando SHA256 del archivo.
+
+Salida → `virustotal_<hash>.json`
+
+---
+
+## 🧠 Integración con Ghidra Headless
+
+Requiere:
+
+```bash
+export GHIDRA_DIR="/opt/ghidra"
+```
+
+Este módulo:
+
+- Importa el binario
+- Ejecuta un script Python que busca:
+  - `connect`
+  - `InternetConnectA`
+  - `WSASend`
+  - `WinHttp*`
+  - APIs relevantes de networking
+- Guarda resultados en `ghidra_headless.log`
+
+---
+
+## 🧾 Exportación a JSON
+
+Ejecutar con:
+
+```bash
+./mictlan.sh muestra.exe --json
+```
+
+Genera:
+
+```
+mictlan_output.json
+```
+
+Incluye:
+
+```json
+{
+  "sample": "muestra.exe",
+  "hashes": { ... },
+  "iocs": { ... },
+  "entropy": 7.98,
+  "packer": "Not UPX",
+  "vt": { ... },
+  "ghidra": { ... }
+}
+```
+
+Ideal para convertir luego a PDF o dashboard SIEM.
+
+---
+
+## 🛡️ Advertencias
+
+⚠ **No ejecutes muestras de malware fuera de máquinas virtuales.**
+
+⚠ Este framework es **solo para análisis forense, educación y blue team**.
+
+⚠ No debe usarse para ejecutar malware ni actividades ofensivas fuera de entornos controlados.
+
+---
+
+## 🏹 Roadmap
+
+- [ ] Análisis dinámico (Firejail + Sysdig)
+- [ ] Integración con CAPA de Mandiant
+- [ ] Detección automática de C2 patterns por ML
+- [ ] Export HTML interactivo
+
+---
+
+## 🐺 Autor
+
+Proyecto desarrollado por **Gustavo (MrFenix | HackerOne)**  
+Optimizado con asistencia de IA para flujos DFIR avanzados.
+
+---
+
+## 🏜️ Mictlan
+
+> “El camino oscuro donde se descubren los secretos”.
+
+🔥 Gracias por usar Mictlan. Si quieres añadir un módulo, escríbelo y lo integramos.
